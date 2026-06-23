@@ -13,7 +13,7 @@ Jam/DoS your neighbour's bluetooth speaker/devices for peace!
 # TODO
 - [X] Material UI
 - [X] Thread Option
--  [ ] Devices List (bug)
+- [X] Devices List (now runs real discovery + paired devices, deduped)
 - [X] Log Switch
 - [X] Start/Stop button (Stop now cancels every worker - no force-close needed)
 - [X] Auto randomize UUID

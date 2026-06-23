@@ -1,19 +1,14 @@
 package com.eikarna.bluetoothjammer
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
-import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
@@ -25,21 +20,20 @@ import androidx.core.content.ContextCompat
 import api.BluetoothDeviceInfo
 import api.ScanNearbyDevices
 import com.google.android.material.textview.MaterialTextView
-import java.util.Date
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var listView: ListView
     private lateinit var emptyView: MaterialTextView
     private lateinit var deviceListAdapter: ArrayAdapter<String>
+
+    private val deviceNames = mutableListOf<String>()
     private var devices: List<BluetoothDeviceInfo> = emptyList()
     private val scanner = ScanNearbyDevices.getInstance()
 
-    // Tracks whether the Bluetooth flow has been started so lifecycle
-    // callbacks (onResume/onPause) don't touch Bluetooth before we have
-    // permission - that was the original launch crash.
+    // Guards lifecycle callbacks so nothing touches Bluetooth before the
+    // permissions are granted - that was the original launch crash.
     private var bluetoothFlowStarted = false
-    private var receiverRegistered = false
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 101
@@ -55,14 +49,17 @@ class MainActivity : AppCompatActivity() {
         emptyView = findViewById(R.id.emptyView)
         listView.emptyView = emptyView
 
+        // A single adapter, updated in place (no per-second recreation).
+        deviceListAdapter = ArrayAdapter(this, R.layout.item_device, R.id.deviceText, deviceNames)
+        listView.adapter = deviceListAdapter
+        listView.setOnItemClickListener { _, _, position, _ ->
+            devices.getOrNull(position)?.let { showDeviceInfo(it) }
+        }
+
         // Nothing that touches Bluetooth runs until permissions are granted.
         checkPermissionsAndStart()
     }
 
-    /**
-     * Requests every permission we need up-front. Only once they are all
-     * granted do we enable Bluetooth, request discoverability and scan.
-     */
     private fun checkPermissionsAndStart() {
         val permissions = requiredPermissions()
         if (hasPermissions(permissions)) {
@@ -74,13 +71,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun requiredPermissions(): Array<String> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+ runtime Bluetooth permissions. ADVERTISE is required
-            // for ACTION_REQUEST_DISCOVERABLE, otherwise it throws a
-            // SecurityException and crashes the app.
+            // Android 12+ runtime Bluetooth permissions.
             arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE,
                 Manifest.permission.ACCESS_FINE_LOCATION
             )
         } else {
@@ -101,69 +95,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
         if (!bluetoothAdapter.isEnabled) {
-            // Ask the user to turn Bluetooth on, then wait for onResume to retry.
-            requestEnableBluetooth()
+            // Ask the user to turn Bluetooth on, then continue from onResume.
+            startActivityForResult(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), 1)
             return
         }
 
-        startBluetoothFlow()
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun requestEnableBluetooth() {
-        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-        startActivityForResult(enableBtIntent, 1)
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun startBluetoothFlow() {
-        if (bluetoothFlowStarted) return
         bluetoothFlowStarted = true
-
-        // Make this device discoverable. Safe now that BLUETOOTH_ADVERTISE is granted.
-        val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 1200)
-        }
-        startActivityForResult(discoverableIntent, 2)
-
-        registerDiscoveryReceiver()
         startScanningForDevices()
     }
 
-    private fun registerDiscoveryReceiver() {
-        if (receiverRegistered) return
-        val filter = IntentFilter().apply {
-            addAction(BluetoothDevice.ACTION_FOUND)
-            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-        }
-        registerReceiver(receiver, filter)
-        receiverRegistered = true
-    }
-
-    // Create a BroadcastReceiver for ACTION_FOUND.
-    private val receiver = object : BroadcastReceiver() {
-        @SuppressLint("MissingPermission")
-        override fun onReceive(context: Context, intent: Intent) {
-            val action: String? = intent.action
-            Log.d("MainActivity", "Action: $action")
-            if (BluetoothDevice.ACTION_FOUND == action) {
-                val device: BluetoothDevice? =
-                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                val deviceInfo = BluetoothDeviceInfo(
-                    name = device?.name ?: "Unknown Device",
-                    address = device?.address ?: "00:00:00:00"
-                )
-                Toast.makeText(
-                    this@MainActivity,
-                    "Found new device!\n\n${deviceInfo.name}\n${deviceInfo.address}\n\n${Date()}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                ScanNearbyDevices.devicesList.add(deviceInfo)
-            }
-        }
-    }
-
-    // Handle the permission request result
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
@@ -190,20 +130,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startScanningForDevices() {
-        scanner.startScanning(this) { discoveredDevices ->
-            devices = discoveredDevices
-            val deviceNames = devices.map { "${it.name}\n${it.address}" }
-
-            deviceListAdapter = ArrayAdapter(this, R.layout.item_device, R.id.deviceText, deviceNames)
-            listView.adapter = deviceListAdapter
-
-            listView.setOnItemClickListener { _, _, position, _ ->
-                showDeviceInfo(devices[position])
-            }
+        scanner.startScanning(this) { discovered ->
+            devices = discovered
+            deviceNames.clear()
+            deviceNames.addAll(discovered.map { "${it.name}\n${it.address}" })
+            deviceListAdapter.notifyDataSetChanged()
         }
     }
 
-    // Show device details in a dialog
     private fun showDeviceInfo(device: BluetoothDeviceInfo) {
         val message = "Name: ${device.name}\nAddress: ${device.address}"
 
@@ -234,10 +168,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         scanner.stopScanning()
-        if (receiverRegistered) {
-            unregisterReceiver(receiver)
-            receiverRegistered = false
-        }
     }
 
     override fun onPause() {
@@ -249,8 +179,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // If we returned from the "enable Bluetooth" prompt, try to continue.
         if (!bluetoothFlowStarted) {
+            // Returning from the "enable Bluetooth" prompt - try to continue.
             if (hasPermissions(requiredPermissions())) {
                 onPermissionsGranted()
             }

