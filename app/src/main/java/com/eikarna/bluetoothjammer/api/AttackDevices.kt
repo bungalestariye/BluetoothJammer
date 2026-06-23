@@ -39,7 +39,11 @@ class L2capFloodAttack(private val targetAddress: String) {
 
     @RequiresApi(Build.VERSION_CODES.Q)
     @SuppressLint("MissingPermission")
-    fun startAttack(context: Context, element: MaterialTextView) {
+    fun startAttack(
+        context: Context,
+        element: MaterialTextView,
+        onConnected: () -> Unit = {}
+    ) {
         val scope = CoroutineScope(Dispatchers.IO)
         coroutineScope = scope
         running = true
@@ -73,6 +77,9 @@ class L2capFloodAttack(private val targetAddress: String) {
             }
 
             if (connected && isActive && running && AttackActivity.isAttacking) {
+                // The target accepted an unpaired connection — report it so the
+                // UI can flag the device as exposed.
+                if (context is AttackActivity) context.runOnUiThread { onConnected() }
                 log(context, element, "Connection established. Sending payload…")
                 floodAttack()
             }

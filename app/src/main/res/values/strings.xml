@@ -17,6 +17,12 @@
     <string name="start">Start</string>
     <string name="stop">Stop</string>
 
+    <!-- Exposure-probe status -->
+    <string name="status_idle">Status: idle. Start a probe to test this device.</string>
+    <string name="status_probing">Probing… no connection accepted yet.</string>
+    <string name="status_exposed">⚠ This device ACCEPTED an unsolicited connection. It is reachable by unpaired devices — consider the hardening tips.</string>
+    <string name="status_refused">✓ Target refused every connection attempt during this probe. Good — it is not accepting unpaired connections.</string>
+
     <!-- Content descriptions -->
     <string name="cd_device_icon">Bluetooth device</string>
 </resources>

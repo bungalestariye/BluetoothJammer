@@ -30,6 +30,10 @@ class AttackActivity : AppCompatActivity() {
     private lateinit var buttonStartStop: MaterialButton
     private lateinit var logAttack: MaterialTextView
     private lateinit var switchLog: MaterialSwitch
+    private lateinit var viewStatus: MaterialTextView
+
+    // Whether the target accepted any unpaired connection during this probe.
+    private var anyConnected = false
 
     // Initialize detail info
     private lateinit var deviceName: String
@@ -68,6 +72,7 @@ class AttackActivity : AppCompatActivity() {
         buttonStartStop = findViewById(R.id.buttonStartStop)
         logAttack = findViewById(R.id.logTextView)
         switchLog = findViewById(R.id.switchLogView)
+        viewStatus = findViewById(R.id.textViewStatus)
 
         // Set text views
         viewDeviceName.text = "Device Name: $deviceName"
@@ -116,14 +121,32 @@ class AttackActivity : AppCompatActivity() {
         BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery()
 
         val workerCount = threads.coerceAtLeast(1)
-        Logger.appendLog(logAttack, "Attack Started! Address: $address ($deviceName) | Threads: $workerCount")
-        Toast.makeText(this@AttackActivity, "Attack started. Tap Stop to end it.", Toast.LENGTH_SHORT).show()
+        Logger.appendLog(logAttack, "Probe started. Address: $address ($deviceName) | Threads: $workerCount")
+        Toast.makeText(this@AttackActivity, "Probe started. Tap Stop to end it.", Toast.LENGTH_SHORT).show()
+
+        anyConnected = false
+        setStatus(getString(R.string.status_probing), com.google.android.material.R.attr.colorOnSurfaceVariant)
 
         attackers.clear()
         for (i in 1..workerCount) {
             val attacker = L2capFloodAttack(address)
             attackers.add(attacker)
-            attacker.startAttack(this, logAttack)
+            attacker.startAttack(this, logAttack) { onTargetConnected() }
+        }
+    }
+
+    /** Called (on the UI thread) the first time any worker connects. */
+    private fun onTargetConnected() {
+        if (anyConnected) return
+        anyConnected = true
+        setStatus(getString(R.string.status_exposed), com.google.android.material.R.attr.colorError)
+    }
+
+    private fun setStatus(text: String, colorAttr: Int) {
+        viewStatus.text = text
+        val tv = android.util.TypedValue()
+        if (theme.resolveAttribute(colorAttr, tv, true)) {
+            viewStatus.setTextColor(tv.data)
         }
     }
 
@@ -137,9 +160,12 @@ class AttackActivity : AppCompatActivity() {
         attackers.forEach { it.stopAttack() }
         attackers.clear()
 
-        Logger.appendLog(logAttack, "Attack stopped.")
+        Logger.appendLog(logAttack, "Probe stopped.")
+        if (!anyConnected) {
+            setStatus(getString(R.string.status_refused), com.google.android.material.R.attr.colorPrimary)
+        }
         BluetoothAdapter.getDefaultAdapter()?.startDiscovery()
-        Toast.makeText(this@AttackActivity, "Attack stopped.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this@AttackActivity, "Probe stopped.", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {
