@@ -36,6 +36,9 @@ class AttackActivity : AppCompatActivity() {
     private lateinit var address: String
     private var threads: Int = 1
 
+    // Live attack workers, so Stop can actually cancel them.
+    private val attackers = mutableListOf<L2capFloodAttack>()
+
     companion object {
         @JvmStatic
         var isAttacking = false
@@ -112,17 +115,29 @@ class AttackActivity : AppCompatActivity() {
         buttonStartStop.text = "Stop"
         BluetoothAdapter.getDefaultAdapter().cancelDiscovery()
         Logger.appendLog(logAttack, "Attack Started! Address: $address ($deviceName) | Threads: $threads")
-        Toast.makeText(this@AttackActivity, "PLEASE FORCE CLOSE APP IF YOU WANT STOP THE ATTACK!", Toast.LENGTH_LONG).show()
-        for (i in 1..threads) L2capFloodAttack(address).startAttack(this, logAttack)
+        Toast.makeText(this@AttackActivity, "Attack started. Tap Stop to end it.", Toast.LENGTH_SHORT).show()
+
+        attackers.clear()
+        for (i in 1..threads) {
+            val attacker = L2capFloodAttack(address)
+            attackers.add(attacker)
+            attacker.startAttack(this, logAttack)
+        }
     }
 
     @SuppressLint("MissingPermission")
     private fun stopAttack() {
+        if (!isAttacking && attackers.isEmpty()) return
         isAttacking = false
         buttonStartStop.text = "Start"
-        Logger.appendLog(logAttack, "Attack Stopped! Force close this app..")
+
+        // Cancel every running worker (closes its socket and coroutine).
+        attackers.forEach { it.stopAttack() }
+        attackers.clear()
+
+        Logger.appendLog(logAttack, "Attack stopped.")
         BluetoothAdapter.getDefaultAdapter().startDiscovery()
-        L2capFloodAttack(address).stopAttack()
+        Toast.makeText(this@AttackActivity, "Attack stopped.", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {
