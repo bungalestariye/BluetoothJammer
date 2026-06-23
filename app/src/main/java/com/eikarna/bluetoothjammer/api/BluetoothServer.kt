@@ -42,7 +42,7 @@ class BluetoothServer(private val bluetoothAdapter: BluetoothAdapter) {
             // Handle the connected socket (e.g., start a thread for data transfer)
             socket.connect()
             val dataSize = 4096 // Example data size
-            val sendBuffer = ByteArray(dataSize) { ((it % 40) + 'A'.toByte()).toByte() }
+            val sendBuffer = ByteArray(dataSize) { ((it % 40) + 'A'.code.toByte()).toByte() }
             socket.outputStream.write(sendBuffer)
         }
 
