@@ -80,7 +80,9 @@ class ScanNearbyDevices {
     }
 
     fun resumeScanning() {
-        if (!isScanning) {
+        // Only resume if a scan was previously started, otherwise `runnable`
+        // is uninitialised and posting it would crash.
+        if (!isScanning && ::runnable.isInitialized) {
             isScanning = true
             handler.post(runnable)
         }

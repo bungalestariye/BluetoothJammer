@@ -1,3 +1,22 @@
 <resources>
     <string name="app_name">Bluetooth Jammer</string>
+
+    <!-- Main screen -->
+    <string name="scanning_subtitle">Scanning nearby devices…</string>
+    <string name="paired_devices">Nearby &amp; paired devices</string>
+    <string name="empty_devices">No devices yet.\nMake sure Bluetooth is on and devices are nearby.</string>
+    <string name="usage_warning">For educational use on devices you own or are authorised to test. Jamming devices you don\'t own may be illegal.</string>
+
+    <!-- Attack screen -->
+    <string name="attack_console">Attack Console</string>
+    <string name="target">Target</string>
+    <string name="threads_hint">Threads (coroutines)</string>
+    <string name="threads_helper">More threads = stronger flood, higher battery use</string>
+    <string name="show_logs">Show logs</string>
+    <string name="log_output">Log output</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_device_icon">Bluetooth device</string>
 </resources>

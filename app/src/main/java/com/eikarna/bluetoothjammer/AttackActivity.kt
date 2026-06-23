@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.isDigitsOnly
 import androidx.core.widget.doAfterTextChanged
 import api.L2capFloodAttack
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textview.MaterialTextView
@@ -48,6 +49,9 @@ class AttackActivity : AppCompatActivity() {
         println("AttackActivity onCreate called")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.attack_layout)
+
+        // Toolbar back navigation
+        findViewById<MaterialToolbar>(R.id.attackToolbar).setNavigationOnClickListener { finish() }
 
         // Get data from Intent
         deviceName = intent.getStringExtra("DEVICE_NAME") ?: "Unknown Device"

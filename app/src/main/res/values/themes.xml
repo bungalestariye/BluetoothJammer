@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Base app theme. On Android 12+ Material You dynamic colours are applied
+      automatically; on older versions these brand colours are the fallback.
+    -->
+    <style name="Theme.BluetoothJammer" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_blue</item>
+        <item name="colorPrimaryContainer">@color/brand_blue_dark</item>
+        <item name="colorSecondary">@color/brand_purple</item>
+        <item name="colorSecondaryContainer">@color/brand_purple_dark</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+    </style>
+
+    <!-- Dark overlay so toolbars always render with light text on the brand colour. -->
+    <style name="ThemeOverlay.BluetoothJammer.Toolbar" parent="ThemeOverlay.Material3.Dark" />
+
+</resources>

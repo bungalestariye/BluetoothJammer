@@ -1,2 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <color name="brand_blue">#2563EB</color>
+    <color name="brand_blue_dark">#1E3A8A</color>
+    <color name="brand_purple">#6D28D9</color>
+    <color name="brand_purple_dark">#4C1D95</color>
+
+    <color name="danger">#DC2626</color>
+
+    <color name="terminal_bg">#0D1117</color>
+    <color name="terminal_text">#3DDC84</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
